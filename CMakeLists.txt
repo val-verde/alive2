@@ -89,6 +89,13 @@ add_executable(alive
               )
 target_link_libraries(alive ${ALIVE_LIBS})
 
+
+add_executable(example-client
+               "tools/example-client.cpp"
+              )
+target_link_libraries(example-client ${ALIVE_LIBS})
+
+
 add_library(alive2 SHARED ${IR_SRCS} ${SMT_SRCS} ${TOOLS_SRCS} ${UTIL_SRCS})
 target_link_libraries(alive2 ${ALIVE_LIBS})
 
@@ -101,6 +108,7 @@ if (CYGWIN)
 else()
   target_link_libraries(alive ${Z3_LIBRARIES})
   target_link_libraries(alive2 ${Z3_LIBRARIES})
+  target_link_libraries(example-client ${Z3_LIBRARIES})
 endif()
 
 if (BUILD_TV)
