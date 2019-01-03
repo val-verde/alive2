@@ -3,14 +3,19 @@
 
 #include "tools/transform.h"
 #include "ir/state.h"
+#include "smt/ctx.h"
 #include "smt/expr.h"
 #include "smt/smt.h"
 #include "smt/solver.h"
 #include "util/errors.h"
 #include "util/symexec.h"
-#include <map>
 #include <set>
 #include <sstream>
+#include <iostream>
+#include <z3.h>
+
+#include <fstream>
+#include <map>
 
 using namespace IR;
 using namespace smt;
@@ -204,6 +209,97 @@ static void check_refinement(Errors &errs, Transform &t,
   });
 }
 
+// FIXME: Get rid of this after we no longer need string matching
+// to find constants
+bool StartsWith(const std::string &pre, const std::string &str) {
+  return std::equal(pre.begin(), pre.end(), str.begin());
+}
+
+// FIXME: Horrible dupe, refactor
+static void check_refinement(Errors &errs, Transform &t,
+                             State &src_state, State &tgt_state,
+                             const Value *var,
+                             const expr &dom_a, const State::ValTy &ap,
+                             const expr &dom_b, const State::ValTy &bp,
+                             bool check_each_var, std::string ConstName,
+                             int64_t &result) {
+
+  auto &a = ap.first;
+  auto &b = bp.first;
+
+  auto qvars = src_state.getQuantVars();
+  qvars.insert(ap.second.begin(), ap.second.end());
+
+  auto err = [&](const Result &r, bool print_var, const char *msg) {
+    error(errs, src_state, tgt_state, r, print_var, var, a, b, msg,
+          check_each_var);
+  };
+
+  std::set<expr> vars;
+  std::set<expr> consts;
+
+  for (auto &[var, val] : src_state.getValues()) {
+    auto &name = var->getName();
+    if (StartsWith("%var", name)) {
+      auto app = val.first.value.isApp();
+      assert(app);
+      vars.insert(Z3_get_app_arg(ctx(), app, 1));
+    }
+  }
+  for (auto &[var, val] : tgt_state.getValues()) {
+    auto &name = var->getName();
+    if (StartsWith("%reserved", name)) {
+      auto app = val.first.value.isApp();
+      assert(app);
+      consts.insert(Z3_get_app_arg(ctx(), app, 1));
+    }
+  }
+
+  auto EqualityCond = smt::expr::mkForAll(vars, a.value == b.value);
+  // auto SimpleConstExistsCheck = smt::expr::mkExists(consts, std::move(EqualityCond));
+  auto SimpleConstExistsCheck = EqualityCond;
+
+  std::cout << "VCOND: " << SimpleConstExistsCheck << "\n";
+
+
+  // Solver::check({
+  //   { preprocess(src, qvars, ap.second, dom_a.notImplies(dom_b)),
+  //     [&](const Result &r) {
+  //       err(r, false, "Source is more defined than target");
+  //     }},
+  //   { preprocess(src, qvars, ap.second,
+  //                dom_a && a.non_poison.notImplies(b.non_poison)),
+  //     [&](const Result &r) {
+  //       err(r, true, "Target is more poisonous than source");
+  //     }}
+  // });
+
+  std::cout << "CHECK!\n";
+  Solver::check({{preprocess(t, qvars, ap.second,
+                 std::move(SimpleConstExistsCheck)),
+    [&] (const Result &r) {
+      std::cout << r.isSat() << r.isUnsat() << r.isInvalid() << r.isUnknown() << std::endl;
+      if (r.isUnsat()) {
+        std::cout << "UNSAT :(\n";
+        err(r, true, "Value mismatch");
+      } else if (r.isSat()) {
+        std::cout << "SAT :)\n";
+        result = r.getModel().getInt(*consts.begin());
+        std::cout << "RESULT : " << result << std::endl;
+
+        for (auto &&[var, val] : r.getModel()) {
+          std::cout << var << " : " << val << std::endl;
+        }
+
+        return;
+      } else {
+        err(r, true, "Unknown/Invalid Result, investigate.");
+      }
+    }}});
+
+
+}
+
 
 namespace tools {
 
@@ -260,6 +356,47 @@ Errors TransformVerify::verify() const {
   return errs;
 }
 
+util::Errors TransformVerify::synthesizeConstant
+    (std::string ConstName, int64_t &result) const {
+  Value::reset_gbl_id();
+  State src_state(t.src), tgt_state(t.tgt);
+  sym_exec(src_state);
+  sym_exec(tgt_state);
+
+  Errors errs;
+
+  if (check_each_var) {
+    assert(false && "TODO: Replace this with a proper error message");
+    // for (auto &[var, val] : src_state.getValues()) {
+    //   auto &name = var->getName();
+    //   if (name[0] != '%' || !dynamic_cast<const Instr*>(var))
+    //     continue;
+
+    //   // TODO: add data-flow domain tracking for Alive, but not for TV
+    //   check_refinement(errs, src, src_state, tgt_state, var,
+    //                    true, val, true, tgt_state.at(*tgt_instrs.at(name)),
+    //                    check_each_var);
+    //   if (errs)
+    //     return errs;
+    // }
+  }
+
+  if (src_state.fnReturned() != tgt_state.fnReturned()) {
+    if (src_state.fnReturned())
+      errs.add("Source returns but target doesn't");
+    else
+      errs.add("Target returns but source doesn't");
+
+  } else if (src_state.fnReturned()) {
+    check_refinement(errs, t, src_state, tgt_state, nullptr,
+                     src_state.returnDomain(), src_state.returnVal(),
+                     tgt_state.returnDomain(), tgt_state.returnVal(),
+                     check_each_var, ConstName, result);
+  }
+
+  return errs;
+
+}
 
 TypingAssignments::TypingAssignments(const expr &e) {
   if (e.isTrue()) {

@@ -50,6 +50,7 @@ class TransformVerify {
 public:
   TransformVerify(Transform &t, bool check_each_var);
   util::Errors verify() const;
+  util::Errors synthesizeConstant(std::string ConstName, int64_t &result) const;
   TypingAssignments getTypings() const;
   void fixupTypes(const TypingAssignments &ty);
 };
