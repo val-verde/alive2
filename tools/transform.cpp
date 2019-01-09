@@ -259,7 +259,7 @@ static void check_refinement(Errors &errs, Transform &t,
   // auto SimpleConstExistsCheck = smt::expr::mkExists(consts, std::move(EqualityCond));
   auto SimpleConstExistsCheck = EqualityCond;
 
-  std::cout << "VCOND: " << SimpleConstExistsCheck << "\n";
+//   std::cout << "VCOND: " << SimpleConstExistsCheck << "\n";
 
 
   // Solver::check({
@@ -274,22 +274,22 @@ static void check_refinement(Errors &errs, Transform &t,
   //     }}
   // });
 
-  std::cout << "CHECK!\n";
+//   std::cout << "CHECK!\n";
   Solver::check({{preprocess(t, qvars, ap.second,
                  std::move(SimpleConstExistsCheck)),
     [&] (const Result &r) {
-      std::cout << r.isSat() << r.isUnsat() << r.isInvalid() << r.isUnknown() << std::endl;
+//       std::cout << r.isSat() << r.isUnsat() << r.isInvalid() << r.isUnknown() << std::endl;
       if (r.isUnsat()) {
-        std::cout << "UNSAT :(\n";
+//         std::cout << "UNSAT :(\n";
         err(r, true, "Value mismatch");
       } else if (r.isSat()) {
-        std::cout << "SAT :)\n";
+//         std::cout << "SAT :)\n";
         result = r.getModel().getInt(*consts.begin());
-        std::cout << "RESULT : " << result << std::endl;
+//         std::cout << "RESULT : " << result << std::endl;
 
-        for (auto &&[var, val] : r.getModel()) {
-          std::cout << var << " : " << val << std::endl;
-        }
+//         for (auto &&[var, val] : r.getModel()) {
+//           std::cout << var << " : " << val << std::endl;
+//         }
 
         return;
       } else {
