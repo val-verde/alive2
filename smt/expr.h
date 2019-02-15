@@ -30,7 +30,6 @@ class expr {
 
   Z3_sort sort() const;
   Z3_decl decl() const;
-  Z3_app isApp() const;
   Z3_app isAppOf(int app_type) const;
 
   expr binop_commutative(const expr &rhs,

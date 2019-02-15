@@ -77,7 +77,7 @@ static void print_varval(ostream &s, State &st, const Model &m,
 }
 
 
-void tools::error(Errors &errs, State &src_state, State &tgt_state,
+void error(Errors &errs, State &src_state, State &tgt_state,
                   const Result &r, bool print_var, const Value *var,
                   const Type &type,
                   const StateValue &src, const StateValue &tgt,
