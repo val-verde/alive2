@@ -60,6 +60,7 @@ smt::expr preprocess(Transform &t, const std::set<smt::expr> &qvars,
 
 void error(util::Errors &errs, IR::State &src_state, IR::State &tgt_state,
                   const smt::Result &r, bool print_var, const IR::Value *var,
+                  const IR::Type &type,
                   const IR::StateValue &src, const IR::StateValue &tgt,
                   const char *msg, bool check_each_var);
 

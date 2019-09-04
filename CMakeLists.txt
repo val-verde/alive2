@@ -145,6 +145,9 @@ if (BUILD_LLVM_UTILS OR BUILD_TV)
   target_link_libraries(alive-tv PRIVATE ${ALIVE_LIBS_LLVM} ${llvm_libs})
 endif()
 
+# target_link_libraries(alive pthread)
+# target_link_libraries(alive2 pthread)
+
 if (CYGWIN)
   # cmake on cygwin doesn't seem to know about dlls..
   get_filename_component(Z3_LIB_DIR "${Z3_LIBRARIES}" DIRECTORY)
