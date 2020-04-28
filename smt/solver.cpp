@@ -380,19 +380,6 @@ EnableSMTQueriesTMP::~EnableSMTQueriesTMP() {
 
 
 void solver_init() {
-  tactic.emplace({
-    "simplify",
-    "propagate-values",
-    "simplify",
-    "elim-uncnstr",
-    "qe-light",
-    "simplify",
-    "elim-uncnstr",
-    "reduce-args",
-    "qe-light",
-    "simplify",
-    "smt"
-  });
 }
 
 void solver_destroy() {
