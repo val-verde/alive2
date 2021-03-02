@@ -175,7 +175,8 @@ add_executable(alive
                "${CMAKE_BINARY_DIR}/tools/alive_lexer.cpp"
                "tools/alive_parser.cpp"
               )
-target_link_libraries(alive PRIVATE ${ALIVE_LIBS} pthread)
+target_link_libraries(alive PRIVATE ${ALIVE_LIBS})
+set_target_properties(alive PROPERTIES COMPILE_FLAGS -pthread)
 
 add_library(alive2 SHARED ${IR_SRCS} ${SMT_SRCS} ${TOOLS_SRCS} ${UTIL_SRCS} ${LLVM_UTIL_SRCS})
 
